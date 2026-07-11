@@ -1,0 +1,34 @@
+node_modules/
+.pnpm-store/
+dist/
+build/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# secrets — never commit
+*.enc
+.env
+.env.*
+!.env.example
+credentials.enc
+
+# agent local data
+apps/agent/data/
+apps/agent/debug-artifacts/
+
+# supabase local
+supabase/.branches/
+supabase/.temp/
+
+# logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+
+# editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
