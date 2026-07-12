@@ -47,9 +47,12 @@ export interface UpdateAssetValueInput {
 }
 
 /**
- * Inserts a NEW snapshot rather than mutating an existing one — this is
- * what preserves history for a future trend chart (out of scope this
- * cycle, but the data model shouldn't foreclose it).
+ * Records a new snapshot for the asset. The schema enforces one snapshot
+ * per account per date (`unique (account_id, as_of)`), so updating on the
+ * same date overwrites that day's row rather than creating a duplicate.
+ * Different dates accumulate normally, preserving history for a future
+ * trend chart (out of scope this cycle, but the data model shouldn't
+ * foreclose it).
  */
 export async function updateAssetValue(accountId: string, input: UpdateAssetValueInput): Promise<void> {
   const supabase = await createClient();
@@ -62,13 +65,18 @@ export async function updateAssetValue(accountId: string, input: UpdateAssetValu
     .single();
   if (accountError || !account) throw new Error(`asset account not found: ${accountError?.message}`);
 
-  const { error } = await supabase.from("asset_snapshots").insert({
-    household_id: householdId,
-    account_id: accountId,
-    as_of: input.asOf,
-    value: input.value,
-    currency: account.currency,
-  });
+  const { error } = await supabase
+    .from("asset_snapshots")
+    .upsert(
+      {
+        household_id: householdId,
+        account_id: accountId,
+        as_of: input.asOf,
+        value: input.value,
+        currency: account.currency,
+      },
+      { onConflict: "account_id,as_of" },
+    );
   if (error) throw new Error(`failed to record asset value: ${error.message}`);
 
   revalidatePath("/net-worth");
