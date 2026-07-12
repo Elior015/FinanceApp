@@ -6,22 +6,27 @@ import { buildTransactionRows } from "./pipeline/normalize.js";
 import { resolvePendingTransactions } from "./pipeline/resolve.js";
 import { syncInstallmentPlans } from "./pipeline/installmentPlans.js";
 import { upsertAccount, upsertTransactions } from "./pipeline/upsert.js";
+import { detectAnomalies } from "./pipeline/anomalies.js";
+import { notifyNewAnomalies, notifySyncResult } from "./notifications/ntfy.js";
 import { runScrape } from "./scraper/runner.js";
 import { getSupabaseClient } from "./supabaseClient.js";
 import type { ProviderCredentials } from "./scraper/credentials.js";
+
+const NTFY_TOPIC = process.env.NTFY_TOPIC ?? "";
 
 interface ConnectionRow {
   id: string;
   household_id: string;
   provider: Provider;
   credential_ref: string;
+  display_name: string;
 }
 
 async function loadConnection(connectionId: string): Promise<ConnectionRow> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("connections")
-    .select("id, household_id, provider, credential_ref")
+    .select("id, household_id, provider, credential_ref, display_name")
     .eq("id", connectionId)
     .single();
   if (error || !data) throw new Error(`connection ${connectionId} not found: ${error?.message}`);
@@ -66,6 +71,12 @@ export async function syncConnection(connectionId: string, options: SyncConnecti
         })
         .eq("id", syncRun.id);
       logger.error(`scrape failed for connection ${connectionId}: ${result.errorType}`);
+      await notifySyncResult(
+        NTFY_TOPIC,
+        connection.display_name,
+        "failed",
+        result.errorType ?? "GENERAL_ERROR",
+      );
       return;
     }
 
@@ -82,6 +93,7 @@ export async function syncConnection(connectionId: string, options: SyncConnecti
     const pendingResolved = await resolvePendingTransactions(supabase, connection.household_id);
     const rulesApplied = await applyRules(supabase, connection.household_id);
     const installmentPlansSynced = await syncInstallmentPlans(supabase, connection.household_id);
+    const anomaliesDetected = await detectAnomalies(supabase, connection.household_id);
 
     await supabase
       .from("connections")
@@ -104,10 +116,12 @@ export async function syncConnection(connectionId: string, options: SyncConnecti
       })
       .eq("id", syncRun.id);
 
+    await notifyNewAnomalies(NTFY_TOPIC, anomaliesDetected.newOpen);
+
     logger.info(
       `sync complete for connection ${connectionId}: ${txnsAttempted} transactions processed, ` +
         `${pendingResolved} pending resolved, ${rulesApplied} categorized by rules, ` +
-        `${installmentPlansSynced} installment plans synced`,
+        `${installmentPlansSynced} installment plans synced, ${anomaliesDetected.newOpen} anomalies detected`,
     );
   } catch (err) {
     await supabase
@@ -118,6 +132,7 @@ export async function syncConnection(connectionId: string, options: SyncConnecti
         finished_at: new Date().toISOString(),
       })
       .eq("id", syncRun.id);
+    await notifySyncResult(NTFY_TOPIC, connection.display_name, "failed", "GENERAL_ERROR");
     throw err;
   }
 }

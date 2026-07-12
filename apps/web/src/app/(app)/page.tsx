@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { SpendingDonut, type DonutSlice } from "./dashboard-donut";
-import { ArrowDownLeft, ArrowUpRight, Wallet, TrendingUp, Receipt } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Wallet, TrendingUp, Receipt, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -63,7 +63,7 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const monthStart = currentMonthStart();
 
-  const [{ data: cashFlow }, { data: spendingRows }, { data: netWorthRows }, { data: recent }] = await Promise.all([
+  const [{ data: cashFlow }, { data: spendingRows }, { data: netWorthRows }, { data: recent }, { data: anomalyRows }] = await Promise.all([
     supabase.from("v_monthly_cash_flow").select("inflow, outflow, net").eq("month", monthStart).maybeSingle(),
     supabase.from("v_spending_by_category").select("category_name, spent").eq("month", monthStart),
     supabase.from("v_net_worth").select("display_name, kind, scraped_balance, latest_manual_value, remaining_installment_liability"),
@@ -73,6 +73,7 @@ export default async function DashboardPage() {
       .eq("status", "completed")
       .order("date", { ascending: false })
       .limit(10),
+    supabase.from("anomalies").select("id, status").eq("status", "open"),
   ]);
 
   const donutData: DonutSlice[] = (spendingRows ?? [])
@@ -83,6 +84,8 @@ export default async function DashboardPage() {
     (sum, r) => sum + Number(r.scraped_balance ?? 0) + Number(r.latest_manual_value ?? 0) - Number(r.remaining_installment_liability ?? 0),
     0,
   );
+
+  const openAnomalyCount = (anomalyRows ?? []).length;
 
   const netPositive = (cashFlow?.net ?? 0) >= 0;
 
@@ -135,49 +138,77 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="card-shadow lg:col-span-3">
-          <CardHeader className="flex flex-row items-start justify-between">
-            <div>
-              <CardTitle>Net worth breakdown</CardTitle>
-              <CardDescription>By account and asset type</CardDescription>
-            </div>
-            <Link href="/net-worth" className="text-sm font-medium text-primary hover:underline">
-              View details
-            </Link>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Wallet className="size-5" />
-              </div>
+        <div className="flex flex-col gap-4 lg:col-span-3">
+          <Card className="card-shadow">
+            <CardHeader className="flex flex-row items-start justify-between">
               <div>
-                <div dir="ltr" className="text-2xl font-bold tracking-tight">{formatCurrency(netWorthTotal)}</div>
-                <p className="text-sm text-muted-foreground">Total across {(netWorthRows ?? []).length} accounts</p>
+                <CardTitle>Net worth breakdown</CardTitle>
+                <CardDescription>By account and asset type</CardDescription>
               </div>
-            </div>
-            <ul className="flex flex-col gap-2">
-              {(netWorthRows ?? []).map((r, i) => {
-                const value = Number(r.scraped_balance ?? 0) + Number(r.latest_manual_value ?? 0);
-                const pct = netWorthTotal !== 0 ? Math.abs(value / netWorthTotal) * 100 : 0;
-                return (
-                  <li key={i} className="flex flex-col gap-1 rounded-lg bg-muted/50 p-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{r.display_name}</span>
-                      <span dir="ltr" className="font-semibold">{formatCurrency(value)}</span>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all"
-                        style={{ width: `${Math.min(100, pct)}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-muted-foreground capitalize">{r.kind}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </CardContent>
-        </Card>
+              <Link href="/net-worth" className="text-sm font-medium text-primary hover:underline">
+                View details
+              </Link>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Wallet className="size-5" />
+                </div>
+                <div>
+                  <div dir="ltr" className="text-2xl font-bold tracking-tight">{formatCurrency(netWorthTotal)}</div>
+                  <p className="text-sm text-muted-foreground">Total across {(netWorthRows ?? []).length} accounts</p>
+                </div>
+              </div>
+              <ul className="flex flex-col gap-2">
+                {(netWorthRows ?? []).map((r, i) => {
+                  const value = Number(r.scraped_balance ?? 0) + Number(r.latest_manual_value ?? 0);
+                  const pct = netWorthTotal !== 0 ? Math.abs(value / netWorthTotal) * 100 : 0;
+                  return (
+                    <li key={i} className="flex flex-col gap-1 rounded-lg bg-muted/50 p-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{r.display_name}</span>
+                        <span dir="ltr" className="font-semibold">{formatCurrency(value)}</span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all"
+                          style={{ width: `${Math.min(100, pct)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted-foreground capitalize">{r.kind}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="card-shadow">
+            <CardHeader className="flex flex-row items-start justify-between">
+              <div>
+                <CardTitle>Insights</CardTitle>
+                <CardDescription>Anomaly alerts requiring attention</CardDescription>
+              </div>
+              <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Lightbulb className="size-5" />
+              </div>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <div className="text-2xl font-bold tracking-tight">{openAnomalyCount}</div>
+                <p className="text-sm text-muted-foreground">
+                  {openAnomalyCount === 1 ? "open anomaly" : "open anomalies"}
+                </p>
+              </div>
+              <Link
+                href="/insights"
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Review insights →
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <Card className="card-shadow">
