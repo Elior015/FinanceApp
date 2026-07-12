@@ -1,4 +1,9 @@
 import { resetPassword } from "./actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ShieldCheck } from "lucide-react";
 
 /**
  * Password-set page, reached after /auth/callback exchanges the recovery
@@ -23,56 +28,62 @@ export default async function ResetPasswordPage({
           : null;
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <form action={resetPassword} className="w-full max-w-sm space-y-4">
-        <h1 className="text-xl font-semibold">Set your password</h1>
-        <p className="text-sm text-neutral-600">
-          Choose a password for your household finance account.
-        </p>
-
-        {message && (
-          <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-            {message}
-          </p>
-        )}
-
-        <div className="space-y-1">
-          <label htmlFor="password" className="text-sm font-medium">
-            New password
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            className="w-full rounded-md border px-3 py-2 text-sm"
-          />
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-background to-muted p-6">
+      <div className="w-full max-w-md">
+        <div className="mb-8 flex flex-col items-center gap-3 text-center">
+          <div className="flex size-14 items-center justify-center rounded-2xl gradient-primary text-primary-foreground shadow-lg">
+            <ShieldCheck className="size-7" />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight">Set your password</h1>
+          <p className="text-muted-foreground">Choose a secure password for your account</p>
         </div>
 
-        <div className="space-y-1">
-          <label htmlFor="confirm" className="text-sm font-medium">
-            Confirm password
-          </label>
-          <input
-            id="confirm"
-            name="confirm"
-            type="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            className="w-full rounded-md border px-3 py-2 text-sm"
-          />
-        </div>
+        <Card className="card-shadow">
+          <CardHeader className="text-center">
+            <CardTitle>New password</CardTitle>
+            <CardDescription>Make it at least 8 characters</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {message && (
+              <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {message}
+              </p>
+            )}
 
-        <button
-          type="submit"
-          className="w-full rounded-md bg-black px-3 py-2 text-sm font-medium text-white"
-        >
-          Set password
-        </button>
-      </form>
+            <form action={resetPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">New password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirm">Confirm password</Label>
+                <Input
+                  id="confirm"
+                  name="confirm"
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <Button type="submit" className="w-full gradient-primary">
+                Set password
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </main>
   );
 }

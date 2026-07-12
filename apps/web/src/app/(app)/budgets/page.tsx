@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AddBudgetDialog } from "./add-budget-dialog";
 import { deleteBudget } from "./actions";
+import { PageHeader } from "@/components/page-header";
+import { Wallet, Trash2, RotateCcw, Target } from "lucide-react";
 import type { CategoryOption } from "../transactions/types";
 
 function formatCurrency(amount: number): string {
@@ -35,46 +37,90 @@ export default async function BudgetsPage() {
   const spentByCategory = new Map((spendingRows ?? []).map((r) => [r.category_id, Number(r.spent ?? 0)]));
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Budgets</h1>
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Budgets" description="Track spending limits by category">
         <AddBudgetDialog categories={(categories ?? []) as CategoryOption[]} />
-      </div>
+      </PageHeader>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {((budgets ?? []) as unknown as BudgetRow[]).map((b) => {
           const spent = spentByCategory.get(b.categories?.id ?? "") ?? 0;
           const pct = b.amount > 0 ? Math.min(100, (spent / b.amount) * 100) : 0;
           const over = spent > b.amount;
+          const remaining = b.amount - spent;
 
           return (
-            <Card key={b.id}>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>{b.categories?.name ?? "Uncategorized"}</CardTitle>
+            <Card key={b.id} className="card-shadow">
+              <CardHeader className="flex flex-row items-start justify-between pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Target className="size-5" />
+                  </div>
+                  <div>
+                    <CardTitle>{b.categories?.name ?? "Uncategorized"}</CardTitle>
+                    <CardDescription>
+                      {new Date(b.starts_on).toLocaleDateString("en-IL", { month: "long", year: "numeric" })}
+                    </CardDescription>
+                  </div>
+                </div>
                 <form action={deleteBudget.bind(null, b.id)}>
-                  <Button type="submit" variant="ghost" size="sm">
-                    Delete
+                  <Button type="submit" variant="ghost" size="icon-xs" aria-label="Delete budget">
+                    <Trash2 className="size-4 text-muted-foreground" />
                   </Button>
                 </form>
               </CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                <div className="flex items-center justify-between text-sm" dir="ltr">
-                  <span className={over ? "font-semibold text-destructive" : "font-semibold"}>{formatCurrency(spent)}</span>
-                  <span className="text-muted-foreground">of {formatCurrency(b.amount)}</span>
+              <CardContent className="space-y-4">
+                <div className="flex items-end justify-between" dir="ltr">
+                  <div>
+                    <div className={over ? "text-2xl font-bold text-destructive" : "text-2xl font-bold"}>
+                      {formatCurrency(spent)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">of {formatCurrency(b.amount)}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium">{over ? "Over by" : "Remaining"}</div>
+                    <div className={over ? "text-sm font-semibold text-destructive" : "text-sm font-semibold text-success"}>
+                      {formatCurrency(Math.abs(remaining))}
+                    </div>
+                  </div>
                 </div>
-                <div className="h-2 w-full rounded-full bg-secondary">
-                  <div
-                    className={`h-2 rounded-full ${over ? "bg-destructive" : "bg-foreground"}`}
-                    style={{ width: `${pct}%` }}
-                  />
+
+                <div className="space-y-1">
+                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={`h-full rounded-full transition-all ${over ? "bg-destructive" : "bg-primary"}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{Math.round(pct)}% used</span>
+                    {b.rollover && (
+                      <span className="inline-flex items-center gap-1">
+                        <RotateCcw className="size-3" /> Rolls over
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {b.rollover && <span className="text-xs text-muted-foreground">Rolls over unused amount</span>}
               </CardContent>
             </Card>
           );
         })}
-        {(budgets ?? []).length === 0 && <p className="text-sm text-muted-foreground">No budgets yet — add one to get started.</p>}
       </div>
+
+      {(budgets ?? []).length === 0 && (
+        <Card className="card-shadow">
+          <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <div className="flex size-14 items-center justify-center rounded-2xl bg-muted">
+              <Wallet className="size-7 text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-semibold">No budgets yet</h3>
+              <p className="text-sm text-muted-foreground">Add a budget to start tracking spending limits by category.</p>
+            </div>
+            <AddBudgetDialog categories={(categories ?? []) as CategoryOption[]} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

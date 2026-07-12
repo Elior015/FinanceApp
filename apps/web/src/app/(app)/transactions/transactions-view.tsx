@@ -5,9 +5,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
 import { bulkCategorize, categorizeTransaction } from "./actions";
 import { formatAmount } from "./format";
 import { TransactionSheet } from "./transaction-sheet";
+import { Tags, X } from "lucide-react";
 import type { CategoryOption, TransactionListRow } from "./types";
 
 function CategorySelect({
@@ -21,7 +23,7 @@ function CategorySelect({
 }) {
   return (
     <select
-      className="h-8 rounded-md border bg-transparent px-2 text-sm"
+      className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value || null)}
     >
@@ -65,8 +67,9 @@ export function TransactionsView({
   return (
     <div className="flex flex-col gap-4">
       {selected.size > 0 && (
-        <div className="hidden items-center gap-3 rounded-md border bg-secondary/40 p-3 md:flex">
-          <span className="text-sm">{selected.size} selected</span>
+        <div className="hidden items-center gap-3 rounded-xl border bg-muted/60 p-3 md:flex">
+          <Tags className="size-4 text-muted-foreground" />
+          <span className="text-sm font-medium">{selected.size} selected</span>
           <CategorySelect value={bulkCategoryId || null} categories={categories} onChange={(v) => setBulkCategoryId(v ?? "")} />
           <Button
             size="sm"
@@ -81,61 +84,71 @@ export function TransactionsView({
           >
             Apply
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+          <Button size="sm" variant="ghost" className="gap-1" onClick={() => setSelected(new Set())}>
+            <X className="size-4" />
             Clear
           </Button>
         </div>
       )}
 
       {/* Desktop: dense table */}
-      <div className="hidden md:block">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8">
-                <Checkbox
-                  checked={transactions.length > 0 && selected.size === transactions.length}
-                  onCheckedChange={(checked) => toggleAll(checked === true)}
-                />
-              </TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Account</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {transactions.map((t) => (
-              <TableRow key={t.id} data-state={selected.has(t.id) ? "selected" : undefined}>
-                <TableCell>
-                  <Checkbox checked={selected.has(t.id)} onCheckedChange={(checked) => toggleOne(t.id, checked === true)} />
-                </TableCell>
-                <TableCell className="whitespace-nowrap">{t.date}</TableCell>
-                <TableCell>
-                  <bdi>{t.description}</bdi>
-                  {t.status === "pending" && (
-                    <Badge variant="secondary" className="ml-2">
-                      pending
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell>{t.accounts?.display_name ?? "—"}</TableCell>
-                <TableCell>
-                  <CategorySelect
-                    value={t.category_id}
-                    categories={categories}
-                    onChange={(categoryId) => startTransition(() => categorizeTransaction(t.id, categoryId))}
+      <Card className="card-shadow hidden overflow-hidden md:block">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-8">
+                  <Checkbox
+                    checked={transactions.length > 0 && selected.size === transactions.length}
+                    onCheckedChange={(checked) => toggleAll(checked === true)}
                   />
-                </TableCell>
-                <TableCell className="text-right" dir="ltr">
-                  {formatAmount(t.charged_amount, t.charged_currency)}
-                </TableCell>
+                </TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Account</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {transactions.map((t) => (
+                <TableRow key={t.id} data-state={selected.has(t.id) ? "selected" : undefined} className="cursor-pointer">
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={selected.has(t.id)} onCheckedChange={(checked) => toggleOne(t.id, checked === true)} />
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-muted-foreground">{t.date}</TableCell>
+                  <TableCell>
+                    <bdi className="font-medium">{t.description}</bdi>
+                    {t.status === "pending" && (
+                      <Badge variant="secondary" className="ml-2">
+                        pending
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{t.accounts?.display_name ?? "—"}</TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <CategorySelect
+                      value={t.category_id}
+                      categories={categories}
+                      onChange={(categoryId) => startTransition(() => categorizeTransaction(t.id, categoryId))}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right" dir="ltr">
+                    <span className="font-semibold">{formatAmount(t.charged_amount, t.charged_currency)}</span>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {transactions.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    No transactions match your filters.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* Mobile: card list, tap to open detail sheet */}
       <div className="flex flex-col gap-2 md:hidden">
@@ -143,21 +156,24 @@ export function TransactionsView({
           <button
             key={t.id}
             onClick={() => setOpenTransaction(t)}
-            className="flex items-center justify-between rounded-md border p-3 text-left"
+            className="flex items-center justify-between rounded-xl border bg-card p-4 text-left card-shadow transition-colors hover:bg-muted/50 active:scale-[0.99]"
           >
-            <div className="flex flex-col gap-1">
-              <bdi className="text-sm font-medium">{t.description}</bdi>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex min-w-0 flex-col gap-1">
+              <bdi className="truncate text-sm font-medium">{t.description}</bdi>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span>{t.date}</span>
                 {t.category_id && <Badge variant="outline">{categoryById.get(t.category_id) ?? "—"}</Badge>}
                 {t.status === "pending" && <Badge variant="secondary">pending</Badge>}
               </div>
             </div>
-            <span dir="ltr" className="font-semibold">
+            <span dir="ltr" className="shrink-0 font-semibold">
               {formatAmount(t.charged_amount, t.charged_currency)}
             </span>
           </button>
         ))}
+        {transactions.length === 0 && (
+          <p className="text-center text-sm text-muted-foreground py-8">No transactions match your filters.</p>
+        )}
       </div>
 
       <TransactionSheet transaction={openTransaction} categories={categories} onOpenChange={(open) => !open && setOpenTransaction(null)} />

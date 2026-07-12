@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { createManualTransaction } from "./actions";
+import { Plus, Receipt } from "lucide-react";
 import type { AccountOption, CategoryOption } from "./types";
 
 export function AddTransactionDialog({ accounts, categories }: { accounts: AccountOption[]; categories: CategoryOption[] }) {
@@ -14,13 +16,19 @@ export function AddTransactionDialog({ accounts, categories }: { accounts: Accou
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button size="sm" />}>Add transaction</DialogTrigger>
-      <DialogContent>
+      <DialogTrigger render={<Button size="sm" className="gap-2 gradient-primary" />}>
+        <Plus className="size-4" />
+        Add transaction
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add manual transaction</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Receipt className="size-5 text-primary" />
+            Add manual transaction
+          </DialogTitle>
         </DialogHeader>
         <form
-          className="flex flex-col gap-3"
+          className="flex flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault();
             const form = new FormData(e.currentTarget);
@@ -51,11 +59,15 @@ export function AddTransactionDialog({ accounts, categories }: { accounts: Accou
           <div className="flex gap-3">
             <div className="flex flex-1 flex-col gap-1.5">
               <Label htmlFor="txn-amount">Amount</Label>
-              <Input id="txn-amount" name="amount" type="number" step="0.01" min="0" required />
+              <Input id="txn-amount" name="amount" type="number" step="0.01" min="0" required placeholder="0.00" />
             </div>
             <div className="flex flex-1 flex-col gap-1.5">
               <Label htmlFor="txn-direction">Direction</Label>
-              <select id="txn-direction" name="direction" className="h-9 rounded-md border bg-transparent px-3 text-sm">
+              <select
+                id="txn-direction"
+                name="direction"
+                className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+              >
                 <option value="expense">Expense</option>
                 <option value="income">Income</option>
               </select>
@@ -64,7 +76,12 @@ export function AddTransactionDialog({ accounts, categories }: { accounts: Accou
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="txn-account">Account</Label>
-            <select id="txn-account" name="accountId" required className="h-9 rounded-md border bg-transparent px-3 text-sm">
+            <select
+              id="txn-account"
+              name="accountId"
+              required
+              className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+            >
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.display_name}
@@ -75,7 +92,11 @@ export function AddTransactionDialog({ accounts, categories }: { accounts: Accou
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="txn-category">Category</Label>
-            <select id="txn-category" name="categoryId" className="h-9 rounded-md border bg-transparent px-3 text-sm">
+            <select
+              id="txn-category"
+              name="categoryId"
+              className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+            >
               <option value="">Uncategorized</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -85,12 +106,12 @@ export function AddTransactionDialog({ accounts, categories }: { accounts: Accou
             </select>
           </div>
 
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="isPersonal" />
-            Personal (not shared)
-          </label>
+          <div className="flex items-center gap-2">
+            <Checkbox id="txn-personal" name="isPersonal" />
+            <Label htmlFor="txn-personal" className="text-sm font-normal">Personal (not shared)</Label>
+          </div>
 
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={isPending} className="gradient-primary">
             {isPending ? "Adding…" : "Add transaction"}
           </Button>
         </form>

@@ -1,4 +1,9 @@
 import { login, requestReset } from "./actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Wallet } from "lucide-react";
 
 export default async function LoginPage({
   searchParams,
@@ -8,87 +13,89 @@ export default async function LoginPage({
   const { error, reset } = await searchParams;
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <div className="w-full max-w-sm space-y-6">
-        <form action={login} className="space-y-4">
-          <h1 className="text-xl font-semibold">Sign in</h1>
-
-          {error && (
-            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error === "recovery"
-                ? "The password-reset link was invalid or expired. Please request a new one."
-                : "Invalid email or password."}
-            </p>
-          )}
-
-          {reset === "sent" && (
-            <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
-              If an account exists for that email, a password-reset link is on
-              its way.
-            </p>
-          )}
-
-          <div className="space-y-1">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              className="w-full rounded-md border px-3 py-2 text-sm"
-            />
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-background to-muted p-6">
+      <div className="w-full max-w-md">
+        <div className="mb-8 flex flex-col items-center gap-3 text-center">
+          <div className="flex size-14 items-center justify-center rounded-2xl gradient-primary text-primary-foreground shadow-lg">
+            <Wallet className="size-7" />
           </div>
+          <h1 className="text-3xl font-bold tracking-tight">Household Finance</h1>
+          <p className="text-muted-foreground">Private finance tracker for your household</p>
+        </div>
 
-          <div className="space-y-1">
-            <label htmlFor="password" className="text-sm font-medium">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="w-full rounded-md border px-3 py-2 text-sm"
-            />
-          </div>
+        <Card className="card-shadow">
+          <CardHeader className="text-center">
+            <CardTitle>Sign in</CardTitle>
+            <CardDescription>Enter your email and password to continue</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {error && (
+              <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {error === "recovery"
+                  ? "The password-reset link was invalid or expired. Please request a new one."
+                  : "Invalid email or password."}
+              </p>
+            )}
 
-          <button
-            type="submit"
-            className="w-full rounded-md bg-black px-3 py-2 text-sm font-medium text-white"
-          >
-            Sign in
-          </button>
-        </form>
+            {reset === "sent" && (
+              <p className="rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
+                If an account exists for that email, a password-reset link is on its way.
+              </p>
+            )}
 
-        <details className="text-sm">
-          <summary className="cursor-pointer text-neutral-600">
-            Forgot password?
-          </summary>
-          <form action={requestReset} className="mt-3 space-y-3">
-            <p className="text-neutral-600">
-              Enter your email and we&apos;ll send a link to set a new one.
-            </p>
-            <input
-              id="reset-email"
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              placeholder="you@example.com"
-              className="w-full rounded-md border px-3 py-2 text-sm"
-            />
-            <button
-              type="submit"
-              className="w-full rounded-md border border-black px-3 py-2 text-sm font-medium text-black"
-            >
-              Send reset link
-            </button>
-          </form>
-        </details>
+            <form action={login} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <Button type="submit" className="w-full gradient-primary">
+                Sign in
+              </Button>
+            </form>
+
+            <details className="group text-sm">
+              <summary className="cursor-pointer list-none text-center text-muted-foreground transition-colors hover:text-foreground">
+                <span className="underline underline-offset-4">Forgot password?</span>
+              </summary>
+              <form action={requestReset} className="mt-4 space-y-3 border-t pt-4">
+                <p className="text-muted-foreground">
+                  Enter your email and we&apos;ll send a link to set a new one.
+                </p>
+                <Input
+                  id="reset-email"
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                />
+                <Button type="submit" variant="outline" className="w-full">
+                  Send reset link
+                </Button>
+              </form>
+            </details>
+          </CardContent>
+        </Card>
       </div>
     </main>
   );
