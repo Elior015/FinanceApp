@@ -4,6 +4,7 @@ import { logger } from "./log/logger.js";
 import { applyRules } from "./pipeline/applyRules.js";
 import { buildTransactionRows } from "./pipeline/normalize.js";
 import { resolvePendingTransactions } from "./pipeline/resolve.js";
+import { syncInstallmentPlans } from "./pipeline/installmentPlans.js";
 import { upsertAccount, upsertTransactions } from "./pipeline/upsert.js";
 import { runScrape } from "./scraper/runner.js";
 import { getSupabaseClient } from "./supabaseClient.js";
@@ -80,6 +81,7 @@ export async function syncConnection(connectionId: string, options: SyncConnecti
 
     const pendingResolved = await resolvePendingTransactions(supabase, connection.household_id);
     const rulesApplied = await applyRules(supabase, connection.household_id);
+    const installmentPlansSynced = await syncInstallmentPlans(supabase, connection.household_id);
 
     await supabase
       .from("connections")
@@ -104,7 +106,8 @@ export async function syncConnection(connectionId: string, options: SyncConnecti
 
     logger.info(
       `sync complete for connection ${connectionId}: ${txnsAttempted} transactions processed, ` +
-        `${pendingResolved} pending resolved, ${rulesApplied} categorized by rules`,
+        `${pendingResolved} pending resolved, ${rulesApplied} categorized by rules, ` +
+        `${installmentPlansSynced} installment plans synced`,
     );
   } catch (err) {
     await supabase
