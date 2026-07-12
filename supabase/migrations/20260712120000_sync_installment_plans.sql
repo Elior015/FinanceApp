@@ -21,9 +21,17 @@
 -- date, not necessarily installment_number=1 -- a first-run backfill
 -- window can start mid-plan (installment #1 scraped before the
 -- configured start-date), so "earliest we've seen" is the only
--- available anchor, and it gets corrected on a later sync once/if an
--- earlier occurrence is discovered (can't happen with combineInstallments:
--- false backfill, but the logic handles it either way via re-upsert).
+-- available anchor. When a new sync discovers an earlier transaction
+-- while the current origin still exists, the row is updated in-place via
+-- ON CONFLICT DO UPDATE (id stable). However, if the origin transaction
+-- itself is ever deleted (e.g., via reconciliation), ON DELETE CASCADE
+-- immediately removes the installment_plans row; the next sync then
+-- inserts a new row with a new id, updating origin_transaction_id to
+-- the remaining earliest transaction. The final column values are correct
+-- either way, but callers should not assume installment_plans.id is
+-- stable across the origin transaction's lifetime. A brief disappearance
+-- from v_net_worth liability calculations can occur if the origin txn
+-- is deleted between syncs (self-heals on next sync, not data loss).
 --
 -- KNOWN LIMITATION: unverified against real data as of this migration.
 -- Zero real installment transactions exist in the live Max data (56
