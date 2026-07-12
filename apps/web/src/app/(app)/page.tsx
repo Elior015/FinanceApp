@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { SpendingDonut, type DonutSlice } from "./dashboard-donut";
 import { ArrowDownLeft, ArrowUpRight, Wallet, TrendingUp, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 function formatCurrency(amount: number, currency = "ILS"): string {
   return new Intl.NumberFormat("en-IL", { style: "currency", currency }).format(amount);
@@ -135,9 +136,14 @@ export default async function DashboardPage() {
         </Card>
 
         <Card className="card-shadow lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Net worth breakdown</CardTitle>
-            <CardDescription>By account and asset type</CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between">
+            <div>
+              <CardTitle>Net worth breakdown</CardTitle>
+              <CardDescription>By account and asset type</CardDescription>
+            </div>
+            <Link href="/net-worth" className="text-sm font-medium text-primary hover:underline">
+              View details
+            </Link>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex items-center gap-3">

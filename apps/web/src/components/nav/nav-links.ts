@@ -1,4 +1,4 @@
-import { LayoutDashboard, Receipt, RefreshCw, Wallet } from "lucide-react";
+import { LayoutDashboard, PiggyBank, Receipt, RefreshCw, Wallet } from "lucide-react";
 
 export interface NavLink {
   href: string;
@@ -10,5 +10,6 @@ export const NAV_LINKS: NavLink[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/transactions", label: "Transactions", icon: Receipt },
   { href: "/budgets", label: "Budgets", icon: Wallet },
+  { href: "/net-worth", label: "Net Worth", icon: PiggyBank },
   { href: "/sync", label: "Sync Health", icon: RefreshCw },
 ];
