@@ -11,6 +11,7 @@ export interface AnomalyRow {
   baseline: Record<string, unknown> | null;
   transaction_id: string | null;
   account_id: string | null;
+  series_id: string | null;
   transactions: {
     description: string;
     charged_amount: number;
@@ -20,5 +21,9 @@ export interface AnomalyRow {
   accounts: {
     display_name: string;
     kind: string;
+  } | null;
+  recurring_series: {
+    merchant_key: string;
+    expected_amount: number | null;
   } | null;
 }

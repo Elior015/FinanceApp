@@ -1,4 +1,4 @@
-import { LayoutDashboard, Lightbulb, PiggyBank, Receipt, RefreshCw, Wallet } from "lucide-react";
+import { LayoutDashboard, Lightbulb, PiggyBank, Receipt, RefreshCw, Repeat, Wallet } from "lucide-react";
 
 export interface NavLink {
   href: string;
@@ -11,6 +11,7 @@ export const NAV_LINKS: NavLink[] = [
   { href: "/transactions", label: "Transactions", icon: Receipt },
   { href: "/budgets", label: "Budgets", icon: Wallet },
   { href: "/net-worth", label: "Net Worth", icon: PiggyBank },
+  { href: "/recurring", label: "Recurring", icon: Repeat },
   { href: "/insights", label: "Insights", icon: Lightbulb },
   { href: "/sync", label: "Sync Health", icon: RefreshCw },
 ];

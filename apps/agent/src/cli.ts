@@ -15,6 +15,7 @@ import { PROVIDER_CREDENTIAL_FIELDS } from "./scraper/credentials.js";
 import { closePromptInterface, promptHidden, prompt } from "./cli/prompt.js";
 import { runFieldAudit } from "./fieldAudit.js";
 import { syncConnection } from "./sync.js";
+import { addConnection } from "./connections.js";
 import { logger } from "./log/logger.js";
 
 function usageAndExit(): never {
@@ -26,6 +27,8 @@ Usage:
   agent sync <connectionId> [--start-date YYYY-MM-DD] [--show-browser]
   agent audit <ref> <provider> [--start-date YYYY-MM-DD] [--show-browser]
                                          Dry-run field audit (no DB writes)
+  agent connections add <ref> <provider> [--display-name <name>]
+                                         Add a new connection for the household admin
 
 Providers: ${Providers.join(", ")}
 `);
@@ -88,6 +91,24 @@ async function main(): Promise<void> {
       if (!ref) usageAndExit();
       removeCredential(ref);
       logger.info(`removed credentials for "${ref}"`);
+      return;
+    }
+    usageAndExit();
+  }
+
+  if (command === "connections") {
+    const [sub, ...subRest] = rest;
+    if (sub === "add") {
+      const { positionals, values } = parseArgs({
+        args: subRest,
+        options: { "display-name": { type: "string" } },
+        allowPositionals: true,
+      });
+      const [ref, providerArg] = positionals;
+      if (!ref || !providerArg || !isProvider(providerArg)) usageAndExit();
+      const connectionId = await addConnection(ref, providerArg, values["display-name"] as string | undefined);
+      logger.info(`added connection ${connectionId} for ref "${ref}" (${providerArg})`);
+      console.log(connectionId);
       return;
     }
     usageAndExit();

@@ -6,6 +6,7 @@ import { buildTransactionRows } from "./pipeline/normalize.js";
 import { resolvePendingTransactions } from "./pipeline/resolve.js";
 import { syncInstallmentPlans } from "./pipeline/installmentPlans.js";
 import { upsertAccount, upsertTransactions } from "./pipeline/upsert.js";
+import { populateRecurringSeries } from "./pipeline/recurringSeries.js";
 import { detectAnomalies } from "./pipeline/anomalies.js";
 import { notifyNewAnomalies, notifySyncResult } from "./notifications/ntfy.js";
 import { runScrape } from "./scraper/runner.js";
@@ -81,6 +82,7 @@ export async function syncConnection(connectionId: string, options: SyncConnecti
     }
 
     let txnsAttempted = 0;
+    let txnsDeduped = 0;
     const kind = PROVIDER_ACCOUNT_KIND[connection.provider];
 
     for (const account of result.accounts ?? []) {
@@ -88,11 +90,13 @@ export async function syncConnection(connectionId: string, options: SyncConnecti
       const rows = buildTransactionRows(connection.household_id, accountId, connection.provider, account);
       const summary = await upsertTransactions(supabase, rows);
       txnsAttempted += summary.attempted;
+      txnsDeduped += summary.deduped;
     }
 
     const pendingResolved = await resolvePendingTransactions(supabase, connection.household_id);
     const rulesApplied = await applyRules(supabase, connection.household_id);
     const installmentPlansSynced = await syncInstallmentPlans(supabase, connection.household_id);
+    const recurringSeriesProposed = await populateRecurringSeries(supabase, connection.household_id);
     const anomaliesDetected = await detectAnomalies(supabase, connection.household_id);
 
     await supabase
@@ -119,9 +123,10 @@ export async function syncConnection(connectionId: string, options: SyncConnecti
     await notifyNewAnomalies(NTFY_TOPIC, anomaliesDetected.newOpen);
 
     logger.info(
-      `sync complete for connection ${connectionId}: ${txnsAttempted} transactions processed, ` +
-        `${pendingResolved} pending resolved, ${rulesApplied} categorized by rules, ` +
-        `${installmentPlansSynced} installment plans synced, ${anomaliesDetected.newOpen} anomalies detected`,
+      `sync complete for connection ${connectionId}: ${txnsAttempted} transactions processed ` +
+        `(${txnsDeduped} in-batch duplicates merged), ${pendingResolved} pending resolved, ` +
+        `${rulesApplied} categorized by rules, ${installmentPlansSynced} installment plans synced, ` +
+        `${recurringSeriesProposed} recurring series proposed, ${anomaliesDetected.newOpen} anomalies detected`,
     );
   } catch (err) {
     await supabase

@@ -27,7 +27,7 @@ export default async function InsightsPage() {
   const { data: rows } = await supabase
     .from("anomalies")
     .select(
-      "id, kind, status, created_at, baseline, transaction_id, account_id, transactions(description, charged_amount, charged_currency, date), accounts(display_name, kind)",
+      "id, kind, status, created_at, baseline, transaction_id, account_id, series_id, transactions(description, charged_amount, charged_currency, date), accounts(display_name, kind), recurring_series(merchant_key, expected_amount)",
     )
     .order("created_at", { ascending: false });
 
@@ -64,11 +64,19 @@ export default async function InsightsPage() {
                     {new Date(a.created_at).toLocaleDateString()}
                   </span>
                 </div>
-                {a.transactions && (
+                {(a.transactions || a.recurring_series) && (
                   <div className="flex flex-col">
-                    <bdi className="truncate font-medium">{a.transactions.description}</bdi>
+                    {a.transactions ? (
+                      <bdi className="truncate font-medium">{a.transactions.description}</bdi>
+                    ) : a.recurring_series ? (
+                      <bdi className="truncate font-medium">{a.recurring_series.merchant_key}</bdi>
+                    ) : null}
                     <span className="text-xs text-muted-foreground">
-                      {a.transactions.date} · {a.accounts?.display_name ?? "Unknown account"}
+                      {a.transactions
+                        ? `${a.transactions.date} · ${a.accounts?.display_name ?? "Unknown account"}`
+                        : a.recurring_series
+                          ? `Expected ${formatCurrency(Number(a.recurring_series.expected_amount ?? 0))}`
+                          : null}
                     </span>
                   </div>
                 )}
