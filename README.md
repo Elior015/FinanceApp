@@ -34,6 +34,7 @@ pnpm install
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 **`apps/agent/.env`** (secret — bypasses RLS entirely, never commit, never put on Vercel):
@@ -47,6 +48,14 @@ See `.env.example` in each app for the full list.
 ### Database
 
 The schema lives in `supabase/migrations/` (apply via the Supabase CLI or dashboard) and `supabase/seed.sql` (category tree + signup allowlist — fill in real household emails before running against a project with signups enabled).
+
+### Deploy to Vercel
+
+1. Create a project in the [Vercel dashboard](https://vercel.com).
+2. Set **Root Directory** to `apps/web`.
+3. Add the environment variables from `apps/web/.env.example` in the dashboard.
+4. `NEXT_PUBLIC_*` values are baked in at build time — if you rotate them, redeploy.
+5. The agent (`apps/agent`) must **not** run on Vercel; it stays on the home box.
 
 ## Running things
 

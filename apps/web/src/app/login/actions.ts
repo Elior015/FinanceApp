@@ -1,7 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { requireEnv } from "@/lib/env";
 
 export async function login(formData: FormData): Promise<void> {
   const email = String(formData.get("email") ?? "");
@@ -26,6 +28,10 @@ export async function login(formData: FormData): Promise<void> {
  * /auth/callback (PKCE), which exchanges the code for a session and
  * forwards to /reset-password where the user picks a new password.
  *
+ * The redirect URL is derived from NEXT_PUBLIC_APP_URL (Vercel / production)
+ * or the current request origin (local dev fallback), so the link works on
+ * any deployed domain instead of being hard-coded to localhost.
+ *
  * We redirect to /login?reset=sent regardless of whether the email
  * actually exists in auth.users — Supabase's resetPasswordForEmail is
  * intentionally non-revealing (it does not confirm whether the address
@@ -35,9 +41,15 @@ export async function login(formData: FormData): Promise<void> {
 export async function requestReset(formData: FormData): Promise<void> {
   const email = String(formData.get("email") ?? "");
 
+  const headersList = await headers();
+  const origin =
+    requireEnv("NEXT_PUBLIC_APP_URL") ??
+    headersList.get("origin") ??
+    "http://localhost:3000";
+
   const supabase = await createClient();
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: "http://localhost:3000/auth/callback",
+    redirectTo: `${origin}/auth/callback`,
   });
 
   redirect("/login?reset=sent");
