@@ -1,5 +1,6 @@
 import { createServerClient, type SetAllCookies } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { requireEnv } from "@/lib/env";
 
 /**
  * Auth callback — handles TWO recovery flows that both land here but carry
@@ -28,16 +29,16 @@ import { NextResponse, type NextRequest } from "next/server";
  * on /reset-password with no persisted session and updateUser() would fail
  * with "no session".
  *
- * This route is exempted from the proxy.ts auth gate (see proxy.ts) so a
- * logged-out user clicking a recovery link can reach it — without that
- * exemption the recovery link bounced to /login and the flow dead-ended,
- * which is the bug this file was added to fix.
+ * This route is exempted from the middleware.ts auth gate so a logged-out
+ * user clicking a recovery link can reach it — without that exemption the
+ * recovery link bounced to /login and the flow dead-ended, which is the bug
+ * this file was added to fix.
  */
 
 function makeClient(request: NextRequest, response: NextResponse) {
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
     {
       cookies: {
         getAll() {
@@ -83,27 +84,7 @@ export async function GET(request: NextRequest) {
   // which calls setSession and sets httpOnly cookies. The script is plain
   // ASCII (no control characters) and constructs no dynamic values into
   // markup, so there's no injection surface.
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Resuming sign-in…</title></head><body>
-<script>
-(function () {
-  function bail() { window.location.replace(${JSON.stringify(`${origin}/login?error=recovery`)}); }
-  var h = window.location.hash.replace(/^#/, "");
-  if (!h) { bail(); return; }
-  var p = new URLSearchParams(h);
-  var at = p.get("access_token");
-  var rt = p.get("refresh_token");
-  if (!at || !rt) { bail(); return; }
-  fetch(${JSON.stringify(`${origin}/auth/callback`)}, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ access_token: at, refresh_token: rt })
-  }).then(function (r) { return r.json(); }).then(function (j) {
-    if (j && j.ok) { window.location.replace(${JSON.stringify(`${origin}/reset-password`)}); }
-    else { bail(); }
-  }).catch(function () { bail(); });
-})();
-</script>
-</body></html>`;
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Resuming sign-in…</title></head><body>\n<script>\n(function () {\n  function bail() { window.location.replace(${JSON.stringify(`${origin}/login?error=recovery`)}); }\n  var h = window.location.hash.replace(/^#/, "");\n  if (!h) { bail(); return; }\n  var p = new URLSearchParams(h);\n  var at = p.get("access_token");\n  var rt = p.get("refresh_token");\n  if (!at || !rt) { bail(); return; }\n  fetch(${JSON.stringify(`${origin}/auth/callback`)}, {\n    method: "POST",\n    headers: { "Content-Type": "application/json" },\n    body: JSON.stringify({ access_token: at, refresh_token: rt })\n  }).then(function (r) { return r.json(); }).then(function (j) {\n    if (j && j.ok) { window.location.replace(${JSON.stringify(`${origin}/reset-password`)}); }\n    else { bail(); }\n  }).catch(function () { bail(); });\n})();\n</script>\n</body></html>`;
   return new NextResponse(html, {
     headers: { "Content-Type": "text/html; charset=utf-8" },
   });

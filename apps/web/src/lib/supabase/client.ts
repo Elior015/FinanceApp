@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { requireEnv } from "../env.js";
 
 /**
  * Browser-side Supabase client. Only ever holds the public anon key —
@@ -8,7 +9,7 @@ import { createBrowserClient } from "@supabase/ssr";
  */
 export function createClient() {
   return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
   );
 }
